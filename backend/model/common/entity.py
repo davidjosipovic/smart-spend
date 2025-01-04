@@ -1,18 +1,18 @@
 from datetime import datetime
-from bson import ObjectId
-from pydantic import BaseModel, Field
+from sqlalchemy import Column, DateTime, UUID, MetaData
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.ext.declarative import as_declarative, declared_attr
+import uuid
 
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+# Define custom metadata
+metadata = MetaData()
 
-    @classmethod
-    def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid ObjectId")
-        return ObjectId(v)
+@as_declarative(metadata=metadata)
+class Entity:
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    created_on: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_on: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-class Entity(BaseModel):
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    created_on: datetime = Field(default_factory=datetime.now)
+    @declared_attr
+    def __tablename__(cls) -> str:
+        return cls.__name__.lower()

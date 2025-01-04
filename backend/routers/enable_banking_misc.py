@@ -7,10 +7,10 @@ from settings import settings
 
 router = APIRouter(
     tags=["Enable Banking"],
-    prefix="/api"
+    prefix="/api/enable-banking"
 )
 
-@router.get("/enable-banking/aspsps")
+@router.get("/aspsps")
 async def get_aspsps_list(country: str = Query(default="hr", max_length=2)):
     response = Response()
         

@@ -45,6 +45,13 @@ Smart Spend is a modern application that helps users manage their personal finan
 
 ---
 
+### Setup
+
+- Add settings.py and .pem key to your _backend_ folder
+- Run ```docker-compose up``` from root
+
+---
+
 ### Prerequisites
 - Python 3.11 or later
 - Node.js and Angular CLI
