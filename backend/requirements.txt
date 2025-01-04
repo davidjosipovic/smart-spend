@@ -2,3 +2,8 @@ fastapi
 uvicorn
 orjson
 watchdog
+bson
+httpx
+pyjwt
+pydantic_settings
+cryptography

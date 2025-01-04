@@ -1,9 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import base
+from routers.common import base
+from routers.enable_banking import enable_banking_misc
 
-app = FastAPI()
+app = FastAPI(
+    title="Smart Spend",
+    description="API documentation for a college project created in the scope of IPVO course (Big Data Infrastructure)",
+    version="1.0.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -14,3 +19,4 @@ app.add_middleware(
 )
 
 app.include_router(base.router)
+app.include_router(enable_banking_misc.router)
