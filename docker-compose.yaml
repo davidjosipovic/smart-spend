@@ -3,7 +3,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: fastapi_app
+    container_name: backend
     ports:
       - "8000:8000"
     depends_on:
@@ -12,20 +12,24 @@ services:
       - DATABASE_URL=postgresql://user:password@db:5432/smart_spend
     volumes:
       - ./backend:/app
+    networks:
+      - app-network
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: angular_frontend
+    container_name: frontend
     ports:
-      - "4200:4200"
+      - "3000:3000"
     volumes:
       - ./frontend:/app
+    networks:
+      - app-network
 
   db:
-    image: postgres:15
-    container_name: postgres_db
+    image: postgres:17
+    container_name: db
     restart: always
     environment:
       POSTGRES_USER: user
@@ -35,6 +39,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
