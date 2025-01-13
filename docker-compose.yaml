@@ -12,8 +12,6 @@ services:
       - DATABASE_URL=postgresql://user:password@db:5432/smart_spend
     volumes:
       - ./backend:/app
-    networks:
-      - app-network
 
   frontend:
     build:
@@ -24,8 +22,6 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app
-    networks:
-      - app-network
 
   db:
     image: postgres:17
@@ -39,12 +35,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - app-network
 
 volumes:
   postgres_data:
 
-networks:
-  app-network:
-    driver: bridge
