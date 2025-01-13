@@ -7,6 +7,7 @@ from alembic import context
 
 from model.common.entity import Entity, metadata
 from model.users.user import User
+from model.enable_banking.account import Account
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
