@@ -31,7 +31,7 @@ async def register(request: CreateOrUpdateUser, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return new_user
+    return response.success(JwtGenerator.generate(new_user, True))
 
 @router.post("/login")
 async def login(request: AuthenticateUser, db: Session = Depends(get_db)):

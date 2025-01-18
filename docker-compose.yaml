@@ -18,6 +18,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: frontend
+    environment:
+      - WATCHPACK_POLLING=" "
     ports:
       - "3000:3000"
     volumes:

@@ -14,6 +14,8 @@ class JwtGenerator:
         payload = {
         'id': str(user.id),
         'name': user.name,
+        'sessionId': user.eb_session_id,
+        'sessionValidUntil': user.valid_until,
         'exp': datetime.now() + timedelta(hours=7 * 24 if remember_me else 1)
         }
 
