@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, Query
 import httpx
-
+import uuid
 from contracts.enable_banking.authorize_session_request import AuthorizeSessionRequest
 from database import get_db
+from model.enable_banking.account import Account
 from model.users.user import User
 from utils.jwt_generator import JwtGenerator
 from contracts.enable_banking.start_authorization_request import Access, Aspsp, StartAuthorizationRequest
@@ -95,7 +96,7 @@ async def authorize_user_session(request: AuthorizeSessionRequest, db: Session =
     return response.success(eb_response.json())
 
 @router.get("/session/{session_id}")
-async def get_session_data(session_id: str):
+async def get_session_data(session_id: str, user_id: str = Depends(JwtGenerator.get_current_user_id), db: Session = Depends(get_db)):
     response = Response()
         
     headers = {"Authorization": f"Bearer {EnableBankingAuth.get_enable_banking_jwt()}"}
@@ -103,6 +104,17 @@ async def get_session_data(session_id: str):
     async with httpx.AsyncClient() as client:
         eb_response = await client.get(f"{settings.enable_banking_api_url}/sessions/{session_id}", headers=headers)
         if eb_response.is_error:
-            return response.with_error(eb_response.json(), eb_response.status_code)    
+            return response.with_error(eb_response.json(), eb_response.status_code)
+
+    for account in eb_response.json()["accounts"]:
+        if db.query(Account).filter(Account.account_id == account).first() == None:
+            new_account = Account(
+                account_id=account,
+                user_id=user_id
+            )
+            db.add(new_account)
+            db.commit()
+            db.refresh(new_account)
+
         
     return response.success(eb_response.json())
