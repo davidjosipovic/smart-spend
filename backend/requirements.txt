@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+orjson
+watchdog
+bson
+httpx
+pyjwt
+pydantic_settings
+cryptography
+sqlalchemy 
+psycopg2-binary
+alembic
+pytz
