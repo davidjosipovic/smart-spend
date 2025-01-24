@@ -1,197 +1,130 @@
-/**
-=========================================================
-* Material Dashboard 2 React - v2.2.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/material-dashboard-react
-* Copyright 2023 Creative Tim (https://www.creative-tim.com)
-
-Coded by www.creative-tim.com
-
- =========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*/
-
 import { useState } from "react";
-
-// @mui material components
-import Grid from "@mui/material/Grid";
-import Card from "@mui/material/Card";
-
-// Material Dashboard 2 React components
+import axios from "axios";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
-import MDAlert from "components/MDAlert";
+import MDInput from "components/MDInput";
 import MDButton from "components/MDButton";
-import MDSnackbar from "components/MDSnackbar";
+import MDAlert from "components/MDAlert";
 
-// Material Dashboard 2 React example components
-import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
-import DashboardNavbar from "examples/Navbars/DashboardNavbar";
-import Footer from "examples/Footer";
+function BudgetNotification() {
+  const [budget, setBudget] = useState("");
+  const [actualSpent, setActualSpent] = useState("");
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-function Notifications() {
-  const [successSB, setSuccessSB] = useState(false);
-  const [infoSB, setInfoSB] = useState(false);
-  const [warningSB, setWarningSB] = useState(false);
-  const [errorSB, setErrorSB] = useState(false);
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setError(""); // Clear previous errors
+    setSuccessMessage(""); // Clear previous success message
 
-  const openSuccessSB = () => setSuccessSB(true);
-  const closeSuccessSB = () => setSuccessSB(false);
-  const openInfoSB = () => setInfoSB(true);
-  const closeInfoSB = () => setInfoSB(false);
-  const openWarningSB = () => setWarningSB(true);
-  const closeWarningSB = () => setWarningSB(false);
-  const openErrorSB = () => setErrorSB(true);
-  const closeErrorSB = () => setErrorSB(false);
+    // Ensure both fields have valid values
+    const parsedBudget = parseFloat(budget);
+    const parsedSpent = parseFloat(actualSpent);
 
-  const alertContent = (name) => (
-    <MDTypography variant="body2" color="white">
-      A simple {name} alert with{" "}
-      <MDTypography component="a" href="#" variant="body2" fontWeight="medium" color="white">
-        an example link
-      </MDTypography>
-      . Give it a click if you like.
-    </MDTypography>
-  );
+    if (isNaN(parsedBudget) || isNaN(parsedSpent)) {
+      setError("Please enter valid numbers for budget and actual spent.");
+      return;
+    }
 
-  const renderSuccessSB = (
-    <MDSnackbar
-      color="success"
-      icon="check"
-      title="Material Dashboard"
-      content="Hello, world! This is a notification message"
-      dateTime="11 mins ago"
-      open={successSB}
-      onClose={closeSuccessSB}
-      close={closeSuccessSB}
-      bgWhite
-    />
-  );
+    // Create the query parameters
+    const params = new URLSearchParams({
+      budget: parsedBudget.toString(),
+      actual_spent: parsedSpent.toString(),
+    });
 
-  const renderInfoSB = (
-    <MDSnackbar
-      icon="notifications"
-      title="Material Dashboard"
-      content="Hello, world! This is a notification message"
-      dateTime="11 mins ago"
-      open={infoSB}
-      onClose={closeInfoSB}
-      close={closeInfoSB}
-    />
-  );
-
-  const renderWarningSB = (
-    <MDSnackbar
-      color="warning"
-      icon="star"
-      title="Material Dashboard"
-      content="Hello, world! This is a notification message"
-      dateTime="11 mins ago"
-      open={warningSB}
-      onClose={closeWarningSB}
-      close={closeWarningSB}
-      bgWhite
-    />
-  );
-
-  const renderErrorSB = (
-    <MDSnackbar
-      color="error"
-      icon="warning"
-      title="Material Dashboard"
-      content="Hello, world! This is a notification message"
-      dateTime="11 mins ago"
-      open={errorSB}
-      onClose={closeErrorSB}
-      close={closeErrorSB}
-      bgWhite
-    />
-  );
+    // Send the request with query parameters
+    axios
+      .post(
+        `http://localhost:8000/api/notify-budget-exceeded?${params.toString()}`,
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json", // Ensure correct headers
+          },
+        }
+      )
+      .then((response) => {
+        setSuccessMessage(response.data.message);
+      })
+      .catch((error) => {
+        if (error.response) {
+          setError(error.response.data.message || "Something went wrong.");
+        } else {
+          setError("Failed to send request. Please try again later.");
+        }
+      });
+  };
 
   return (
-    <DashboardLayout>
-      <DashboardNavbar />
-      <MDBox mt={6} mb={3}>
-        <Grid container spacing={3} justifyContent="center">
-          <Grid item xs={12} lg={8}>
-            <Card>
-              <MDBox p={2}>
-                <MDTypography variant="h5">Alerts</MDTypography>
-              </MDBox>
-              <MDBox pt={2} px={2}>
-                <MDAlert color="primary" dismissible>
-                  {alertContent("primary")}
-                </MDAlert>
-                <MDAlert color="secondary" dismissible>
-                  {alertContent("secondary")}
-                </MDAlert>
-                <MDAlert color="success" dismissible>
-                  {alertContent("success")}
-                </MDAlert>
-                <MDAlert color="error" dismissible>
-                  {alertContent("error")}
-                </MDAlert>
-                <MDAlert color="warning" dismissible>
-                  {alertContent("warning")}
-                </MDAlert>
-                <MDAlert color="info" dismissible>
-                  {alertContent("info")}
-                </MDAlert>
-                <MDAlert color="light" dismissible>
-                  {alertContent("light")}
-                </MDAlert>
-                <MDAlert color="dark" dismissible>
-                  {alertContent("dark")}
-                </MDAlert>
-              </MDBox>
-            </Card>
-          </Grid>
+    <MDBox mx={2} my={4} display="flex" flexDirection="column" alignItems="center">
+      <MDTypography variant="h4" fontWeight="medium" color="info" mb={2}>
+        Budget Notification
+      </MDTypography>
 
-          <Grid item xs={12} lg={8}>
-            <Card>
-              <MDBox p={2} lineHeight={0}>
-                <MDTypography variant="h5">Notifications</MDTypography>
-                <MDTypography variant="button" color="text" fontWeight="regular">
-                  Notifications on this page use Toasts from Bootstrap. Read more details here.
-                </MDTypography>
-              </MDBox>
-              <MDBox p={2}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6} lg={3}>
-                    <MDButton variant="gradient" color="success" onClick={openSuccessSB} fullWidth>
-                      success notification
-                    </MDButton>
-                    {renderSuccessSB}
-                  </Grid>
-                  <Grid item xs={12} sm={6} lg={3}>
-                    <MDButton variant="gradient" color="info" onClick={openInfoSB} fullWidth>
-                      info notification
-                    </MDButton>
-                    {renderInfoSB}
-                  </Grid>
-                  <Grid item xs={12} sm={6} lg={3}>
-                    <MDButton variant="gradient" color="warning" onClick={openWarningSB} fullWidth>
-                      warning notification
-                    </MDButton>
-                    {renderWarningSB}
-                  </Grid>
-                  <Grid item xs={12} sm={6} lg={3}>
-                    <MDButton variant="gradient" color="error" onClick={openErrorSB} fullWidth>
-                      error notification
-                    </MDButton>
-                    {renderErrorSB}
-                  </Grid>
-                </Grid>
-              </MDBox>
-            </Card>
-          </Grid>
-        </Grid>
+      {error && (
+        <MDBox mb={2} width="100%">
+          <MDAlert color="error" dismissible>
+            <MDTypography variant="body2" color="white">
+              {error}
+            </MDTypography>
+          </MDAlert>
+        </MDBox>
+      )}
+
+      {successMessage && (
+        <MDBox
+          mb={2}
+          sx={{
+            px: { xs: 2, sm: 3, md: 5 }, // Responsive padding based on screen size
+            width: "100%",
+          }}
+        >
+          <MDAlert color="success" dismissible>
+            <MDTypography
+              variant="body2"
+              sx={{
+                mx: { xs: 2, sm: 3, md: 40 }, // Responsive padding based on screen size
+                width: "100%",
+              }}
+              color="white"
+            >
+              {successMessage}
+            </MDTypography>
+          </MDAlert>
+        </MDBox>
+      )}
+
+      <MDBox component="form" onSubmit={handleSubmit} width="100%" maxWidth="400px">
+        <MDBox mb={2}>
+          <MDInput
+            type="number"
+            label="Budget"
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+            fullWidth
+            required
+          />
+        </MDBox>
+
+        <MDBox mb={2}>
+          <MDInput
+            type="number"
+            label="Actual Spent"
+            value={actualSpent}
+            onChange={(e) => setActualSpent(e.target.value)}
+            fullWidth
+            required
+          />
+        </MDBox>
+
+        <MDBox mt={4}>
+          <MDButton variant="gradient" color="info" fullWidth type="submit">
+            Notify
+          </MDButton>
+        </MDBox>
       </MDBox>
-      <Footer />
-    </DashboardLayout>
+    </MDBox>
   );
 }
 
-export default Notifications;
+export default BudgetNotification;
