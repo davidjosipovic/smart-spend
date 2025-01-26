@@ -38,7 +38,18 @@ import OrdersOverview from "layouts/dashboard/components/OrdersOverview";
 
 function Dashboard() {
   const { sales, tasks } = reportsLineChartData;
-  const accountId = "0c4f13f1-1ef6-4aef-aaad-44022860e25c"; // Pass the correct account ID
+  var accountId = "";
+  const jwt = localStorage.getItem("jwt"); // 'jwt' is the key under which the token is stored
+  if (jwt) {
+    // If the token exists, decode it
+    const base64Url = jwt.split(".")[1]; // Get the payload part of the JWT
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/"); // Decode base64 URL encoding
+    const decodedData = JSON.parse(atob(base64)); // Decode and parse the JSON
+
+    accountId = decodedData.id;
+  } else {
+    console.log("JWT not found in localStorage");
+  }
 
   return (
     <DashboardLayout>

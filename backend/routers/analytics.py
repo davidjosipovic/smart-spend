@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends
-
 from model.common.response import Response
 from model.enable_banking.account import Account
 from sqlalchemy.orm import Session
@@ -7,32 +6,29 @@ from starlette import status
 from database import get_db
 from model.enable_banking.transaction import Transaction
 
-
-
 router = APIRouter(
     tags=["Analytics"],
     prefix="/api"
 )
 
-@router.get("/accounts/{id}/analytics")
-async def get_account_analytics(id: str, db: Session = Depends(get_db)):
+@router.get("/accounts/{user_id}/analytics")
+async def get_account_analytics(user_id: str, db: Session = Depends(get_db)):
     """
     Returns the total spending (debits) and total income (credits) grouped by day for the given account.
     """
     response = Response()
 
     # Check if the account exists
-    account = db.query(Account).filter(Account.id == id).first()
+    account = db.query(Account).filter(Account.user_id == user_id).first()
     if account is None:
-        return response.with_error(f"Account {id} not found", status.HTTP_404_NOT_FOUND)
+        return response.with_error(f"Account with user_id {user_id} not found", status.HTTP_404_NOT_FOUND)
 
-    # Fetch transactions in a single query
+    # Fetch transactions in a single query, filtering by account_id of the retrieved account
     transactions = (
         db.query(Transaction.booking_date, Transaction.transaction_amount, Transaction.credit_debit_indicator)
-        .filter(Transaction.account_id == id)
+        .filter(Transaction.account_id == account.id)  # Use account.account_id here
         .all()
     )
-
     # Group and calculate analytics
     analytics_data = {"debits": {}, "credits": {}}
     for booking_date, amount, indicator in transactions:
