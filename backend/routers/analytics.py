@@ -26,44 +26,22 @@ async def get_account_analytics(id: str, db: Session = Depends(get_db)):
     if account is None:
         return response.with_error(f"Account {id} not found", status.HTTP_404_NOT_FOUND)
 
-    # Query debit transactions for the account
-    debit_transactions = (
-        db.query(Transaction.booking_date, Transaction.transaction_amount)
-        .filter(
-            Transaction.account_id == id,  # Ensure this matches the correct column
-            Transaction.credit_debit_indicator == "DBIT"
-        )
+    # Fetch transactions in a single query
+    transactions = (
+        db.query(Transaction.booking_date, Transaction.transaction_amount, Transaction.credit_debit_indicator)
+        .filter(Transaction.account_id == id)
         .all()
     )
 
-    # Query credit transactions for the account
-    credit_transactions = (
-        db.query(Transaction.booking_date, Transaction.transaction_amount)
-        .filter(
-            Transaction.account_id == id,  # Ensure this matches the correct column
-            Transaction.credit_debit_indicator == "CRDT"
-        )
-        .all()
-    )
-
-    # Group transactions by day and calculate total spending/income
+    # Group and calculate analytics
     analytics_data = {"debits": {}, "credits": {}}
-
-    # Process debit transactions
-    for booking_date, amount in debit_transactions:
-        day = str(booking_date)  # Convert date to string format
-        amount = float(amount)  # Convert amount to a numeric type
-        if day not in analytics_data["debits"]:
-            analytics_data["debits"][day] = 0
-        analytics_data["debits"][day] += amount
-
-    # Process credit transactions
-    for booking_date, amount in credit_transactions:
-        day = str(booking_date)  # Convert date to string format
-        amount = float(amount)  # Convert amount to a numeric type
-        if day not in analytics_data["credits"]:
-            analytics_data["credits"][day] = 0
-        analytics_data["credits"][day] += amount
+    for booking_date, amount, indicator in transactions:
+        day = booking_date
+        amount = float(amount)
+        key = "debits" if indicator == "DBIT" else "credits"
+        if day not in analytics_data[key]:
+            analytics_data[key][day] = 0
+        analytics_data[key][day] += amount
 
     # Format the response
     analytics_result = {

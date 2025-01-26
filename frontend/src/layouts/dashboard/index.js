@@ -18,6 +18,7 @@ import Grid from "@mui/material/Grid";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
+import DailySpendingChart from "layouts/dashboard/components/DailySpendingChart";
 
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -37,6 +38,7 @@ import OrdersOverview from "layouts/dashboard/components/OrdersOverview";
 
 function Dashboard() {
   const { sales, tasks } = reportsLineChartData;
+  const accountId = "0c4f13f1-1ef6-4aef-aaad-44022860e25c"; // Pass the correct account ID
 
   return (
     <DashboardLayout>
@@ -141,6 +143,9 @@ function Dashboard() {
                   chart={tasks}
                 />
               </MDBox>
+            </Grid>
+            <Grid item xs={12} md={6} lg={4}>
+              <DailySpendingChart accountId={accountId} />
             </Grid>
           </Grid>
         </MDBox>
