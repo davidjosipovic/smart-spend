@@ -7,8 +7,11 @@ httpx
 pyjwt
 pydantic_settings
 cryptography
-sqlalchemy 
+sqlalchemy
 psycopg2-binary
 alembic
 pytz
 sendgrid
+celery
+redis
+flower

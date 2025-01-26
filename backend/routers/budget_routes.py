@@ -24,7 +24,7 @@ async def notify_budget_exceeded(budget: float, actual_spent: float):
     if actual_spent > budget:
         subject = "Budget Exceeded!"
         content = f"You have exceeded your budget. Your set budget was ${budget} and you've spent ${actual_spent}."
-        status_code = send_email(subject, content)
+        status_code = send_email(subject, content, "leo@gmail.com")
         
         if status_code == 202:
             return {"message": "Email sent successfully!"}
