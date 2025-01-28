@@ -10,6 +10,7 @@ from model.users.user import User
 from model.enable_banking.account import Account
 from model.enable_banking.balance import Balance
 from model.enable_banking.transaction import Transaction
+from model.budgets.budget import Budget
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

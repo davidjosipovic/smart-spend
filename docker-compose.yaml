@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   backend:
     build:
@@ -8,22 +10,25 @@ services:
       - "8000:8000"
     depends_on:
       - db
+      - redis  # Ensure backend waits for Redis
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/smart_spend
+      - CELERY_BROKER_URL=redis://redis:6379/0  # Set Celery broker to Redis
     volumes:
       - ./backend:/app
+    command: ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: frontend
-    environment:
-      - WATCHPACK_POLLING=" "
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
+#  frontend:
+#    build:
+#      context: ./frontend
+#      dockerfile: Dockerfile
+#    container_name: frontend
+#    environment:
+#      - WATCHPACK_POLLING=" "
+#    ports:
+#      - "3000:3000"
+#    volumes:
+#      - ./frontend:/app
 
   db:
     image: postgres:17
@@ -38,6 +43,52 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"  # Redis port for Celery to connect
+    restart: always
+
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: celery
+    command: [ "celery", "-A", "celery_config.app", "worker", "--loglevel=info" ]
+    depends_on:
+      - redis
+      - db
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0  # Celery connects to Redis here
+    volumes:
+      - ./backend:/app
+
+  celery-beat:
+      build:
+        context: ./backend
+        dockerfile: Dockerfile
+      container_name: celery-beat
+      command: [ "celery", "-A", "celery_config.app", "beat", "--loglevel=info" ]
+      depends_on:
+        - redis
+        - celery
+      environment:
+        - CELERY_BROKER_URL=redis://redis:6379/0  # Celery Beat connects to Redis here
+      volumes:
+        - ./backend:/app
+
+  flower:
+    image: mher/flower
+    container_name: flower
+    ports:
+      - "5555:5555"  # Flower web interface port
+    environment:
+      - FLOWER_BASIC_AUTH=username:password  # Optional: set Flower basic auth for security
+    depends_on:
+      - redis
+      - celery
+    command: ["celery", "--broker=redis://redis:6379/0", "flower", "--port=5555"]
+
 volumes:
   postgres_data:
-

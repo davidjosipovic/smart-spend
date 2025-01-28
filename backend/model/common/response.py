@@ -1,5 +1,6 @@
 from typing import Any, List
 
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, Field
 

@@ -18,6 +18,7 @@ import Grid from "@mui/material/Grid";
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
+import DailySpendingChart from "layouts/dashboard/components/DailySpendingChart";
 
 // Material Dashboard 2 React example components
 import DashboardLayout from "examples/LayoutContainers/DashboardLayout";
@@ -37,6 +38,18 @@ import OrdersOverview from "layouts/dashboard/components/OrdersOverview";
 
 function Dashboard() {
   const { sales, tasks } = reportsLineChartData;
+  var accountId = "";
+  const jwt = localStorage.getItem("jwt"); // 'jwt' is the key under which the token is stored
+  if (jwt) {
+    // If the token exists, decode it
+    const base64Url = jwt.split(".")[1]; // Get the payload part of the JWT
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/"); // Decode base64 URL encoding
+    const decodedData = JSON.parse(atob(base64)); // Decode and parse the JSON
+
+    accountId = decodedData.id;
+  } else {
+    console.log("JWT not found in localStorage");
+  }
 
   return (
     <DashboardLayout>
@@ -141,6 +154,9 @@ function Dashboard() {
                   chart={tasks}
                 />
               </MDBox>
+            </Grid>
+            <Grid item xs={12} md={6} lg={4}>
+              <DailySpendingChart accountId={accountId} />
             </Grid>
           </Grid>
         </MDBox>
