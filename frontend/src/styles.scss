@@ -1,0 +1,60 @@
+/* You can add global styles to this file, and also import other style files */
+/*@import "primeng/resources/primeng.css";
+@import "primeicons/primeicons.css";*/
+/*@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";*/
+@use "primeicons/primeicons.css";
+
+:root {
+  /* Main Colors */
+  --primary-color: #2563eb;    /* Blue */
+  --secondary-color: #64748b;  /* Slate */
+  --accent-color: #0ea5e9;     /* Sky Blue */
+
+  /* Background Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+
+  /* Text Colors */
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-light: #94a3b8;
+
+  /* Status Colors */
+  --success-color: #22c55e;
+  --warning-color: #eab308;
+  --error-color: #ef4444;
+  --info-color: #3b82f6;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.p-component {
+  font-family: var(--font-family);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--secondary-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
