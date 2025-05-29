@@ -1,11 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { MenubarModule } from 'primeng/menubar';
 import { SidebarModule } from 'primeng/sidebar';
 import { ButtonModule } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
 import { AvatarModule } from 'primeng/avatar';
+import { MenuItem } from 'primeng/api';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-dashboard-layout',
@@ -91,7 +93,10 @@ import { AvatarModule } from 'primeng/avatar';
   `]
 })
 export class DashboardLayoutComponent {
-  userMenuItems = [
+  constructor(
+    private authService: AuthService) { }
+
+  userMenuItems: MenuItem[] = [
     {
       label: 'Profile',
       icon: 'pi pi-user'
@@ -105,7 +110,10 @@ export class DashboardLayoutComponent {
     },
     {
       label: 'Sign out',
-      icon: 'pi pi-sign-out'
+      icon: 'pi pi-sign-out',
+      command: () => {
+        this.authService.logout();
+      }
     }
   ];
 } 

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import jwt as pyjwt
-from settings import settings
+from settings.settings import settings
 
 from model.users.user import User
 

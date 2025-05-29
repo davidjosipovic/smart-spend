@@ -169,11 +169,13 @@ export class RegisterComponent {
         },
         error: (error) => {
           this.isLoading = false;
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Registration Failed',
-            detail: error.error?.message || 'An error occurred during registration. Please try again.'
-          });
+          for (const err of error.error.errors) {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Registration Failed',
+              detail: err
+            });
+          }
         }
       });
     } else {

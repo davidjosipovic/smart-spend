@@ -117,18 +117,21 @@ export class LoginComponent {
     if (this.loginForm.valid) {
       this.isLoading = true;
       const loginRequest: LoginRequest = this.loginForm.value;
-      
+
       this.authService.login(loginRequest).subscribe({
         next: () => {
           this.router.navigate(['/dashboard']);
         },
         error: (error) => {
           this.isLoading = false;
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Login Failed',
-            detail: error.error?.message || 'An error occurred during login. Please try again.'
-          });
+
+          for (const err of error.error.errors) {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Login Failed',
+              detail: err
+            });
+          }
         }
       });
     } else {
