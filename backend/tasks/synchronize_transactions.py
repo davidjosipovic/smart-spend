@@ -39,18 +39,22 @@ async def synchronize_transactions(providedDb: Session):
                     received_transactions = eb_response.json()["transactions"]
 
                     for received_transaction in received_transactions:
-                        if db.query(Transaction).filter(Transaction.entry_reference == received_transaction["entry_reference"]).first() is not None:
+                        if db.query(Transaction).filter(Transaction.reference == (received_transaction["transaction_id"] or received_transaction["entry_reference"])).first() is not None:
                             continue
 
                         transaction = Transaction()
-                        transaction.entry_reference = received_transaction["entry_reference"]
-                        transaction.transaction_amount = received_transaction["transaction_amount"]["amount"]
-                        transaction.transaction_currency = received_transaction["transaction_amount"]["currency"]
-                        transaction.account_id = account.id
+                        transaction.reference = received_transaction["transaction_id"] or received_transaction["entry_reference"]
                         transaction.booking_date = received_transaction["booking_date"]
-                        transaction.status = received_transaction["status"]
-                        transaction.creditor_name = received_transaction["creditor"]["name"]
+                        transaction.transaction_date = received_transaction["transaction_date"]
+                        transaction.amount = float(received_transaction["transaction_amount"]["amount"])
+                        transaction.currency = received_transaction["transaction_amount"]["currency"]
                         transaction.credit_debit_indicator = received_transaction["credit_debit_indicator"]
+                        transaction.status = received_transaction["status"]
+                        transaction.remittance_information = " ".join(received_transaction.get("remittance_information", []))
+                        transaction.merchant_category_code = received_transaction.get("merchant_category_code")
+                        transaction.creditor_name = received_transaction.get("creditor", {}).get("name")
+                        transaction.debtor_name = received_transaction.get("debtor", {}).get("name")
+                        transaction.account_id = account.id
                         db.add(transaction)
                         db.commit()
                         db.refresh(transaction)
