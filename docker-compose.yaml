@@ -24,14 +24,14 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     ports:
-      - "4200:4200"
+      - "3000:3000" 
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
-    command: ["ng", "serve", "--host", "0.0.0.0", "--disable-host-check", "--poll", "2000"]
+    command: ["ng", "serve", "--host", "0.0.0.0", "--port", "3000", "--disable-host-check", "--poll", "2000"]
     user: "node"
 
   db:
@@ -43,7 +43,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: smart_spend
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import Session
 from typing import Generator
 
-from settings.settings import settings
+from settings import settings
 
 engine = create_engine(settings.database_url)
 

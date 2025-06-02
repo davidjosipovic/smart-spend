@@ -8,6 +8,7 @@ import { MenuModule } from 'primeng/menu';
 import { AvatarModule } from 'primeng/avatar';
 import { MenuItem } from 'primeng/api';
 import { AuthService } from '../../../core/services/auth.service';
+import {Toast} from 'primeng/toast';
 
 @Component({
   selector: 'app-dashboard-layout',
@@ -19,7 +20,8 @@ import { AuthService } from '../../../core/services/auth.service';
     SidebarModule,
     ButtonModule,
     MenuModule,
-    AvatarModule
+    AvatarModule,
+    Toast
   ],
   template: `
     <div class="min-h-screen bg-gray-50">
@@ -32,11 +34,11 @@ import { AuthService } from '../../../core/services/auth.service';
                 <h1 class="text-2xl font-bold text-primary">SmartSpend</h1>
               </div>
             </div>
-            
+
             <div class="flex items-center">
               <p-avatar icon="pi pi-user" styleClass="mr-2" shape="circle"></p-avatar>
               <p-menu #menu [popup]="true" [model]="userMenuItems"></p-menu>
-              <p-button icon="pi pi-ellipsis-v" (click)="menu.toggle($event)" 
+              <p-button icon="pi pi-ellipsis-v" (click)="menu.toggle($event)"
                         styleClass="p-button-text p-button-rounded"></p-button>
             </div>
           </div>
@@ -47,28 +49,34 @@ import { AuthService } from '../../../core/services/auth.service';
         <!-- Sidebar -->
         <aside class="w-64 bg-white shadow-sm h-[calc(100vh-4rem)] fixed">
           <nav class="mt-5 px-2">
-            <a routerLink="/dashboard/overview" routerLinkActive="bg-gray-100" 
+            <a routerLink="/dashboard/overview" routerLinkActive="bg-gray-100"
                class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
               <i class="pi pi-home mr-3 text-gray-400 group-hover:text-gray-500"></i>
               Overview
             </a>
-            
-            <a routerLink="/dashboard/budgets" routerLinkActive="bg-gray-100"
+
+           <!--  <a routerLink="/dashboard/budgets" routerLinkActive="bg-gray-100"
                class="mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
               <i class="pi pi-wallet mr-3 text-gray-400 group-hover:text-gray-500"></i>
               Budgets
-            </a>
-            
+            </a> -->
+
             <a routerLink="/dashboard/transactions" routerLinkActive="bg-gray-100"
                class="mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
               <i class="pi pi-list mr-3 text-gray-400 group-hover:text-gray-500"></i>
               Transactions
             </a>
-            
-            <a routerLink="/dashboard/analytics" routerLinkActive="bg-gray-100"
+
+            <!-- <a routerLink="/dashboard/analytics" routerLinkActive="bg-gray-100"
                class="mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
               <i class="pi pi-chart-line mr-3 text-gray-400 group-hover:text-gray-500"></i>
               Analytics
+            </a> -->
+
+            <a routerLink="/dashboard/bank-connection" routerLinkActive="bg-gray-100"
+               class="mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+              <i class="pi pi-link mr-3 text-gray-400 group-hover:text-gray-500"></i>
+              Connect Bank
             </a>
           </nav>
         </aside>
@@ -83,6 +91,7 @@ import { AuthService } from '../../../core/services/auth.service';
         </main>
       </div>
     </div>
+    <p-toast></p-toast>
   `,
   styles: [`
     :host ::ng-deep {
@@ -116,4 +125,4 @@ export class DashboardLayoutComponent {
       }
     }
   ];
-} 
+}

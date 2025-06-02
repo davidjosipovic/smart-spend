@@ -1,0 +1,36 @@
+<div class="container mt-4">
+  <h2>Connect Your Bank</h2>
+  
+  @if (loading) {
+    <div class="text-center">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  }
+
+  @if (error) {
+    <div class="alert alert-danger" role="alert">
+      {{ error }}
+    </div>
+  }
+
+  @if (!loading && !error) {
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+      @for (aspsp of aspsps; track aspsp.id) {
+        <div class="col">
+          <div class="card h-100">
+            <img [src]="aspsp.logo" class="card-img-top p-3" [alt]="aspsp.name" style="height: 100px; object-fit: contain;">
+            <div class="card-body">
+              <h5 class="card-title">{{ aspsp.name }}</h5>
+              <p class="card-text">Country: {{ aspsp.country }}</p>
+              <button class="btn btn-primary" (click)="connectToBank(aspsp)" [disabled]="loading">
+                Connect
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div> 

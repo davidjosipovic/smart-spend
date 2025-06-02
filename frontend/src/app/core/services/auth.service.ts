@@ -35,7 +35,7 @@ export class AuthService {
       tap((response: AuthResponse) => {
         // Store the result in localStorage if rememberMe is true, otherwise in sessionStorage
         const storage = request.rememberMe ? localStorage : sessionStorage;
-        storage.setItem('result', response.result);
+        storage.setItem('jwt', response.result);
       })
     );
   }
@@ -44,22 +44,20 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${environment.apiUrl}/register`, request).pipe(
       tap((response: AuthResponse) => {
         // Store the result in localStorage for new registrations
-        localStorage.setItem('result', response.result);
+        localStorage.setItem('jwt', response.result);
       })
     );
   }
 
   logout(): void {
     // Clear both storages to ensure complete logout
-    localStorage.removeItem('result');
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('result');
-    sessionStorage.removeItem('user');
+    localStorage.removeItem('jwt');
+    sessionStorage.removeItem('jwt');
     this.router.navigate(['/auth/login']);
   }
 
   getToken(): string | null {
-    return localStorage.getItem('result') || sessionStorage.getItem('result');
+    return localStorage.getItem('jwt') || sessionStorage.getItem('jwt');
   }
 
   isAuthenticated(): boolean {

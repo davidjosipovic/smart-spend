@@ -1,7 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from settings.settings import settings
+from settings import settings
 
 SENDGRID_API_KEY = settings.SENDGRID_API_KEY
 FROM_EMAIL = settings.FROM_EMAIL

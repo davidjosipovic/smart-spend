@@ -26,6 +26,14 @@ export const DASHBOARD_ROUTES: Routes = [
       {
         path: 'analytics',
         loadComponent: () => import('./pages/analytics/analytics.component').then(m => m.AnalyticsComponent)
+      },
+      {
+        path: 'bank-connection',
+        loadComponent: () => import('./pages/bank-connection/bank-connection.component').then(m => m.BankConnectionComponent)
+      },
+      {
+        path: 'callback',
+        loadComponent: () => import('./pages/bank-callback/bank-callback.component').then(m => m.BankCallbackComponent)
       }
     ]
   }
