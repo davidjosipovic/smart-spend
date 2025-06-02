@@ -3,5 +3,21 @@ __pycache__/
 *.py[cod]
 
 #Secrets
-125f6ecd-2d1d-4119-a83f-31055204284f.pem
+backend/125f6ecd-2d1d-4119-a83f-31055204284f.pem
 settings.py
+
+#Angular
+node_modules/
+
+# Miscellaneous
+/.angular/cache
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+
+# System files
+.DS_Store
+Thumbs.db

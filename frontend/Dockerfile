@@ -1,27 +1,26 @@
-# Use the official Node.js image as the base image
-FROM node:lts
+# Use Node.js LTS version as the base image
+FROM node:20-alpine
 
-# Set the working directory in the container
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json first to leverage Docker cache
-COPY package*.json ./ 
+# Install Angular CLI globally
+RUN npm install -g @angular/cli
 
-# Install the dependencies
-RUN npm install --force
+# Copy package.json and package-lock.json
+COPY package*.json ./
 
-# Copy the rest of the application files
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application
 COPY . .
 
-# Build the React app for production
-RUN npm run build
-
-# Install `serve` to run the application.
-RUN npm install -g serve
-
-# Uses port which is used by the actual application
+# Expose port 3000 for Angular dev server
 EXPOSE 3000
 
-# Run application
-CMD [ "npm", "start" ]
-#CMD serve -s build
+# Add environment variable for file watching
+ENV CHOKIDAR_USEPOLLING=true
+
+# Start Angular development server with host 0.0.0.0 to allow external access
+CMD ["ng", "serve", "--host", "0.0.0.0", "--port", "3000", "--disable-host-check", "--poll", "2000"]

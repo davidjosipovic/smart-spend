@@ -16,7 +16,7 @@ class JwtGenerator:
         'name': user.name,
         'sessionId': user.eb_session_id,
         'sessionValidUntil': user.valid_until,
-        'exp': datetime.now() + timedelta(hours=7 * 24 if remember_me else 1)
+        'exp': datetime.now() + timedelta(hours=7 * 24)
         }
 
         token = pyjwt.encode(payload, settings.jwt_secret_key, algorithm='HS256')

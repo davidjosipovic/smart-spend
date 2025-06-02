@@ -18,17 +18,21 @@ services:
       - ./backend:/app
     command: ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]
 
-#  frontend:
-#    build:
-#      context: ./frontend
-#      dockerfile: Dockerfile
-#    container_name: frontend
-#    environment:
-#      - WATCHPACK_POLLING=" "
-#    ports:
-#      - "3000:3000"
-#    volumes:
-#      - ./frontend:/app
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000" 
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    command: ["ng", "serve", "--host", "0.0.0.0", "--port", "3000", "--disable-host-check", "--poll", "2000"]
+    user: "node"
 
   db:
     image: postgres:17
@@ -39,7 +43,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: smart_spend
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -92,3 +96,4 @@ services:
 
 volumes:
   postgres_data:
+  node_modules:
