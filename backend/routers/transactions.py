@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 import csv
 
+from utils.authorization_key import EnableBankingAuth
 from celery_config import classify_transactions_task
 import httpx
 from sqlalchemy.orm.session import Session
@@ -72,7 +73,8 @@ async def get_saved_transactions(
             "merchant_category_code": transaction.merchant_category_code,
             "creditor_name": transaction.creditor_name,
             "debtor_name": transaction.debtor_name,
-            "bank_transaction_code": transaction.bank_transaction_code
+            "bank_transaction_code": transaction.bank_transaction_code,
+            "category": transaction.category,  # ML-classified category
         }
         transaction_dicts.append(transaction_dict)
 
@@ -100,6 +102,8 @@ async def synchronize_transactions(db: Session = Depends(get_db)):
     should_continue = True
     continuation_key = None
     iterations = 0
+    
+    headers = {"Authorization": f"Bearer {EnableBankingAuth.get_enable_banking_jwt()}"}
 
     new_transaction_ids = []
 

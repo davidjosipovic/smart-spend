@@ -20,19 +20,26 @@ interface Account {
 }
 
 interface Transaction {
-  entry_reference: string;
-  transaction_amount: {
-    amount: string;
-    currency: string;
-  };
-  creditor: {
-    name: string;
-  };
-  credit_debit_indicator: 'CRDT' | 'DBIT';
-  status: string;
+  reference: string;
   booking_date: string;
-  value_date: string;
-  remittance_information: string[];
+  transaction_date: string | null;
+  amount: number;
+  currency: string;
+  credit_debit_indicator: 'CRDT' | 'DBIT' | null;
+  status: string;
+  remittance_information: string;
+  merchant_category_code: string | null;
+  creditor_name: string | null;
+  debtor_name: string | null;
+  bank_transaction_code: string | null;
+  category: string | null;
+}
+
+interface PaginationInfo {
+  current_page: number;
+  page_size: number;
+  total_count: number;
+  total_pages: number;
 }
 
 @Component({
@@ -89,14 +96,18 @@ interface Transaction {
       </div>
 
       <!-- Transactions Table -->
-      <p-table [value]="transactions" [paginator]="true" [rows]="10" 
+      <p-table [value]="transactions" [paginator]="true" [rows]="pageSize" [first]="first"
                [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
                [rowsPerPageOptions]="[10,25,50]" styleClass="p-datatable-sm"
+               [totalRecords]="totalRecords"
+               [lazy]="true"
+               (onPage)="onPageChange($event)"
                *ngIf="selectedAccount && !isLoading">
         <ng-template pTemplate="header">
           <tr>
             <th>Date</th>
             <th>Description</th>
+            <th>Category</th>
             <th>Type</th>
             <th class="text-right">Amount</th>
             <th class="text-center">Actions</th>
@@ -105,7 +116,8 @@ interface Transaction {
         <ng-template pTemplate="body" let-transaction>
           <tr>
             <td>{{ transaction.booking_date | date:'mediumDate' }}</td>
-            <td>{{ transaction.creditor.name }}</td>
+            <td>{{ transaction.remittance_information }}</td>
+            <td>{{ transaction.category || 'Uncategorized' }}</td>
             <td>
               <span class="inline-flex items-center">
                 <i class="pi" [ngClass]="transaction.credit_debit_indicator === 'CRDT' ? 'pi-arrow-up text-green-600' : 'pi-arrow-down text-red-600'"></i>
@@ -113,7 +125,7 @@ interface Transaction {
               </span>
             </td>
             <td class="text-right" [ngClass]="transaction.credit_debit_indicator === 'CRDT' ? 'text-green-600' : 'text-red-600'">
-              {{ transaction.credit_debit_indicator === 'CRDT' ? '+' : '-' }}{{ transaction.transaction_amount.amount }} {{ transaction.transaction_amount.currency }}
+              {{ transaction.credit_debit_indicator === 'CRDT' ? '+' : '-' }}{{ transaction.amount }} {{ transaction.currency }}
             </td>
             <td class="text-center">
               <p-button icon="pi pi-eye" styleClass="p-button-text p-button-rounded" (click)="showTransactionDetails(transaction)"></p-button>
@@ -132,13 +144,18 @@ interface Transaction {
           
           <div>
             <label class="block text-sm font-medium text-gray-700">Description</label>
-            <p>{{ selectedTransaction.creditor.name }}</p>
+            <p>{{ selectedTransaction.remittance_information }}</p>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Category</label>
+            <p>{{ selectedTransaction.category || 'Uncategorized' }}</p>
           </div>
           
           <div>
             <label class="block text-sm font-medium text-gray-700">Amount</label>
             <p [ngClass]="selectedTransaction.credit_debit_indicator === 'CRDT' ? 'text-green-600' : 'text-red-600'">
-              {{ selectedTransaction.credit_debit_indicator === 'CRDT' ? '+' : '-' }}{{ selectedTransaction.transaction_amount.amount }} {{ selectedTransaction.transaction_amount.currency }}
+              {{ selectedTransaction.credit_debit_indicator === 'CRDT' ? '+' : '-' }}{{ selectedTransaction.amount }} {{ selectedTransaction.currency }}
             </p>
           </div>
           
@@ -153,18 +170,33 @@ interface Transaction {
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-gray-700">Value Date</label>
-            <p>{{ selectedTransaction.value_date | date:'mediumDate' }}</p>
+            <label class="block text-sm font-medium text-gray-700">Transaction Date</label>
+            <p>{{ selectedTransaction.transaction_date | date:'mediumDate' }}</p>
           </div>
           
           <div>
             <label class="block text-sm font-medium text-gray-700">Reference</label>
-            <p>{{ selectedTransaction.entry_reference }}</p>
+            <p>{{ selectedTransaction.reference }}</p>
           </div>
           
-          <div *ngIf="selectedTransaction.remittance_information?.length">
-            <label class="block text-sm font-medium text-gray-700">Additional Information</label>
-            <p>{{ selectedTransaction.remittance_information[0] }}</p>
+          <div *ngIf="selectedTransaction.creditor_name">
+            <label class="block text-sm font-medium text-gray-700">Creditor</label>
+            <p>{{ selectedTransaction.creditor_name }}</p>
+          </div>
+          
+          <div *ngIf="selectedTransaction.debtor_name">
+            <label class="block text-sm font-medium text-gray-700">Debtor</label>
+            <p>{{ selectedTransaction.debtor_name }}</p>
+          </div>
+          
+          <div *ngIf="selectedTransaction.merchant_category_code">
+            <label class="block text-sm font-medium text-gray-700">Merchant Category</label>
+            <p>{{ selectedTransaction.merchant_category_code }}</p>
+          </div>
+          
+          <div *ngIf="selectedTransaction.bank_transaction_code">
+            <label class="block text-sm font-medium text-gray-700">Bank Transaction Code</label>
+            <p>{{ selectedTransaction.bank_transaction_code }}</p>
           </div>
         </div>
       </p-dialog>
@@ -178,6 +210,12 @@ export class TransactionsComponent implements OnInit {
   showDetailsDialog = false;
   selectedTransaction: Transaction | null = null;
   isLoading = false;
+  
+  // Pagination state
+  currentPage = 1;
+  pageSize = 10;
+  totalRecords = 0;
+  first = 0;
 
   constructor(private http: HttpClient) {}
 
@@ -202,14 +240,24 @@ export class TransactionsComponent implements OnInit {
 
   onAccountSelect(account: Account) {
     this.selectedAccount = account;
+    this.currentPage = 1; // Reset to first page when selecting new account
     this.loadTransactions(account.account_id);
   }
 
   loadTransactions(accountId: string) {
     this.isLoading = true;
-    this.http.get<{ result: { transactions: Transaction[] } }>(`${environment.apiUrl}/enable-banking/accounts/${accountId}/transactions`).subscribe({
+    const params = {
+      page: this.currentPage.toString(),
+      pageSize: this.pageSize.toString()
+    };
+    
+    this.http.get<{ result: { transactions: Transaction[], pagination: PaginationInfo } }>(
+      `${environment.apiUrl}/transactions/accounts/${accountId}`,
+      { params }
+    ).subscribe({
       next: (response) => {
         this.transactions = response.result.transactions;
+        this.totalRecords = response.result.pagination.total_count;
         this.isLoading = false;
       },
       error: (error) => {
@@ -217,6 +265,15 @@ export class TransactionsComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  onPageChange(event: any) {  
+    this.currentPage = (event.first / event.rows) + 1; // PrimeNG uses 0-based indexing
+    this.first = event.first;
+    this.pageSize = event.rows;
+    if (this.selectedAccount) {
+      this.loadTransactions(this.selectedAccount.account_id);
+    }
   }
 
   showTransactionDetails(transaction: Transaction) {

@@ -78,7 +78,12 @@ export class BankCallbackComponent implements OnInit {
                 summary: 'Success',
                 detail: 'Bank authorization successful',
               })
-              this.enableBankingService.getSessionData(response.result.session_id).subscribe();
+              this.enableBankingService.getSessionData(response.result.session_id).subscribe(response => {
+                var accountIds: string[] = response.result.accounts
+                for(let accountId of accountIds) {
+                  this.enableBankingService.synchronizeTransactions(accountId).subscribe();
+                }
+              });
             });
           } else {
             this.router.navigate(['/dashboard']).then(value => {

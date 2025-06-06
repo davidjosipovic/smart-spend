@@ -29,4 +29,8 @@ export class EnableBankingService {
   getSessionData(sessionId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/session/${sessionId}`);
   }
+
+  synchronizeTransactions(accountId: string): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/transactions/accounts/${accountId}/synchronize-transactions`)
+  }
 } 
