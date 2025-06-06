@@ -6,11 +6,15 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { DropdownModule } from 'primeng/dropdown';
-import { CalendarModule } from 'primeng/calendar';
+import { DatePickerModule } from 'primeng/datepicker';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ToolbarModule } from 'primeng/toolbar';
+import { FileUploadModule } from 'primeng/fileupload';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
+import { MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
 
 interface Account {
   id: string;
@@ -53,11 +57,15 @@ interface PaginationInfo {
     InputTextModule,
     InputNumberModule,
     DropdownModule,
-    CalendarModule,
+    DatePickerModule,
     ReactiveFormsModule,
     FormsModule,
-    ProgressSpinnerModule
+    ProgressSpinnerModule,
+    ToolbarModule,
+    FileUploadModule,
+    ToastModule
   ],
+  providers: [MessageService],
   template: `
     <div class="space-y-6">
       <!-- Page Header -->
@@ -88,6 +96,43 @@ interface PaginationInfo {
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Actions Toolbar -->
+      <div *ngIf="selectedAccount" class="bg-white p-4 rounded-lg shadow-sm">
+        <p-toolbar styleClass="mb-4">
+          <ng-template pTemplate="left">
+            <div class="flex gap-2">
+              <p-button 
+                icon="pi pi-sync" 
+                label="Sync Transactions" 
+                styleClass="p-button-primary"
+                [loading]="isSyncing"
+                (click)="syncTransactions()">
+              </p-button>
+              
+              <p-fileUpload 
+                mode="basic" 
+                name="transactions" 
+                accept=".csv" 
+                [maxFileSize]="1000000"
+                chooseLabel="Import CSV"
+                styleClass="p-button-secondary"
+                (onUpload)="onFileUpload($event)"
+                [auto]="true"
+                [showUploadButton]="false"
+                [showCancelButton]="false">
+              </p-fileUpload>
+              
+              <p-button 
+                icon="pi pi-plus" 
+                label="New Transaction" 
+                styleClass="p-button-success"
+                (click)="showNewTransactionDialog()">
+              </p-button>
+            </div>
+          </ng-template>
+        </p-toolbar>
       </div>
 
       <!-- Loading Spinner -->
@@ -200,6 +245,36 @@ interface PaginationInfo {
           </div>
         </div>
       </p-dialog>
+
+      <!-- New Transaction Dialog -->
+      <p-dialog header="New Transaction" [(visible)]="showNewTransactionForm" [style]="{width: '450px'}" [modal]="true">
+        <form [formGroup]="newTransactionForm" (ngSubmit)="submitNewTransaction()" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Description</label>
+            <input pInputText formControlName="remittance_information" class="w-full" />
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Amount</label>
+            <p-inputNumber formControlName="amount" mode="currency" currency="EUR" locale="en-US" class="w-full"></p-inputNumber>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Type</label>
+            <p-dropdown formControlName="credit_debit_indicator" [options]="transactionTypes" optionLabel="label" optionValue="value" class="w-full"></p-dropdown>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Date</label>
+            <p-datePicker formControlName="booking_date" appendTo="body" [showIcon]="true" dateFormat="yy-mm-dd" class="w-full"></p-datePicker>
+          </div>
+          
+          <div class="flex justify-end gap-2">
+            <p-button type="button" label="Cancel" styleClass="p-button-text" (click)="showNewTransactionForm = false"></p-button>
+            <p-button type="submit" label="Save" [disabled]="!newTransactionForm.valid"></p-button>
+          </div>
+        </form>
+      </p-dialog>
     </div>
   `
 })
@@ -217,7 +292,27 @@ export class TransactionsComponent implements OnInit {
   totalRecords = 0;
   first = 0;
 
-  constructor(private http: HttpClient) {}
+  // New properties
+  isSyncing = false;
+  showNewTransactionForm = false;
+  newTransactionForm: FormGroup;
+  transactionTypes = [
+    { label: 'Credit', value: 'CRDT' },
+    { label: 'Debit', value: 'DBIT' }
+  ];
+
+  constructor(
+    private http: HttpClient,
+    private fb: FormBuilder,
+    private messageService: MessageService
+  ) {
+    this.newTransactionForm = this.fb.group({
+      remittance_information: ['', Validators.required],
+      amount: [null, [Validators.required, Validators.min(0)]],
+      credit_debit_indicator: ['DBIT', Validators.required],
+      booking_date: [new Date(), Validators.required]
+    });
+  }
 
   ngOnInit() {
     this.loadAccounts();
@@ -279,5 +374,97 @@ export class TransactionsComponent implements OnInit {
   showTransactionDetails(transaction: Transaction) {
     this.selectedTransaction = transaction;
     this.showDetailsDialog = true;
+  }
+
+  syncTransactions() {
+    if (!this.selectedAccount) return;
+    
+    this.isSyncing = true;
+    this.http.post(`${environment.apiUrl}/transactions/accounts/${this.selectedAccount.account_id}/synchronize-transactions`, {}).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Transactions synchronized successfully'
+        });
+        this.loadTransactions(this.selectedAccount!.account_id);
+      },
+      error: (error) => {
+        console.error('Error syncing transactions:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to synchronize transactions'
+        });
+      },
+      complete: () => {
+        this.isSyncing = false;
+      }
+    });
+  }
+
+  onFileUpload(event: any) {
+    const file = event.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    this.http.post(`${environment.apiUrl}/transactions/accounts/${this.selectedAccount!.account_id}/import-transactions`, formData).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Transactions imported successfully'
+        });
+        this.loadTransactions(this.selectedAccount!.account_id);
+      },
+      error: (error) => {
+        console.error('Error importing transactions:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to import transactions'
+        });
+      }
+    });
+  }
+
+  showNewTransactionDialog() {
+    this.newTransactionForm.reset({
+      credit_debit_indicator: 'DBIT',
+      booking_date: new Date()
+    });
+    this.showNewTransactionForm = true;
+  }
+
+  submitNewTransaction() {
+    if (!this.newTransactionForm.valid || !this.selectedAccount) return;
+
+    const transaction = {
+      ...this.newTransactionForm.value,
+      currency: this.selectedAccount.currency || 'EUR',
+      status: 'BOOKED'
+    };
+
+    this.http.post(`${environment.apiUrl}/transactions/accounts/${this.selectedAccount.account_id}/insert-transaction`, transaction).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Transaction created successfully'
+        });
+        this.showNewTransactionForm = false;
+        this.loadTransactions(this.selectedAccount!.account_id);
+      },
+      error: (error) => {
+        console.error('Error creating transaction:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to create transaction'
+        });
+      }
+    });
   }
 }
