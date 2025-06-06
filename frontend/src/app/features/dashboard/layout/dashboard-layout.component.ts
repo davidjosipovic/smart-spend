@@ -29,7 +29,10 @@ import {Toast} from 'primeng/toast';
       <header class="bg-white shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex justify-between h-16">
-            <div class="flex">
+            <div class="flex items-center">
+              <button pButton icon="pi pi-bars" 
+                      class="p-button-text p-button-rounded mr-2"
+                      (click)="toggleSidebar()"></button>
               <div class="flex-shrink-0 flex items-center">
                 <h1 class="text-2xl font-bold text-primary">SmartSpend</h1>
               </div>
@@ -47,7 +50,8 @@ import {Toast} from 'primeng/toast';
 
       <div class="flex">
         <!-- Sidebar -->
-        <aside class="w-64 bg-white shadow-sm h-[calc(100vh-4rem)] fixed">
+        <aside [class]="'w-64 bg-white shadow-sm h-[calc(100vh-4rem)] fixed transition-transform duration-300 ease-in-out ' + 
+                       (isSidebarVisible ? 'translate-x-0' : '-translate-x-full')">
           <nav class="mt-5 px-2">
             <a routerLink="/dashboard/overview" routerLinkActive="bg-gray-100"
                class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
@@ -55,7 +59,7 @@ import {Toast} from 'primeng/toast';
               Overview
             </a>
 
-           <!--  <a routerLink="/dashboard/budgets" routerLinkActive="bg-gray-100"
+            <!--  <a routerLink="/dashboard/budgets" routerLinkActive="bg-gray-100"
                class="mt-1 group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
               <i class="pi pi-wallet mr-3 text-gray-400 group-hover:text-gray-500"></i>
               Budgets
@@ -82,7 +86,8 @@ import {Toast} from 'primeng/toast';
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 ml-64">
+        <main [class]="'flex-1 transition-all duration-300 ease-in-out ' + 
+                      (isSidebarVisible ? 'ml-64' : 'ml-0')">
           <div class="py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <router-outlet></router-outlet>
@@ -102,8 +107,14 @@ import {Toast} from 'primeng/toast';
   `]
 })
 export class DashboardLayoutComponent {
+  isSidebarVisible = true;
+
   constructor(
     private authService: AuthService) { }
+
+  toggleSidebar() {
+    this.isSidebarVisible = !this.isSidebarVisible;
+  }
 
   userMenuItems: MenuItem[] = [
     {
