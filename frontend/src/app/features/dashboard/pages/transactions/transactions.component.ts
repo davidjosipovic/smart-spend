@@ -115,13 +115,16 @@ interface PaginationInfo {
                 mode="basic" 
                 name="transactions" 
                 accept=".csv" 
-                [maxFileSize]="1000000"
+                [maxFileSize]="10000000"
                 chooseLabel="Import CSV"
                 styleClass="p-button-secondary"
-                (onUpload)="onFileUpload($event)"
+                [customUpload]="true"
+                (uploadHandler)="onFileUpload($event)"
+                (onError)="onUploadError($event)"
                 [auto]="true"
                 [showUploadButton]="false"
-                [showCancelButton]="false">
+                [showCancelButton]="false"
+                [disabled]="isUploading">
               </p-fileUpload>
               
               <p-button 
@@ -276,6 +279,8 @@ interface PaginationInfo {
         </form>
       </p-dialog>
     </div>
+
+    <p-toast></p-toast>
   `
 })
 export class TransactionsComponent implements OnInit {
@@ -300,6 +305,8 @@ export class TransactionsComponent implements OnInit {
     { label: 'Credit', value: 'CRDT' },
     { label: 'Debit', value: 'DBIT' }
   ];
+
+  isUploading = false;
 
   constructor(
     private http: HttpClient,
@@ -380,12 +387,12 @@ export class TransactionsComponent implements OnInit {
     if (!this.selectedAccount) return;
     
     this.isSyncing = true;
-    this.http.post(`${environment.apiUrl}/transactions/accounts/${this.selectedAccount.account_id}/synchronize-transactions`, {}).subscribe({
-      next: () => {
+    this.http.get<{ result: number }>(`${environment.apiUrl}/transactions/accounts/${this.selectedAccount.account_id}/synchronize-transactions`).subscribe({
+      next: (response) => {
         this.messageService.add({
           severity: 'success',
           summary: 'Success',
-          detail: 'Transactions synchronized successfully'
+          detail: response.result > 0 ? `Successfully received ${response.result} new transaction(s)` : 'No new transactions found'
         });
         this.loadTransactions(this.selectedAccount!.account_id);
       },
@@ -404,14 +411,36 @@ export class TransactionsComponent implements OnInit {
   }
 
   onFileUpload(event: any) {
+    console.log(event);
+    
     const file = event.files[0];
-    if (!file) return;
+    if (!file) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No file selected'
+      });
+      return;
+    }
 
+    if (!this.selectedAccount) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Please select an account first'
+      });
+      return;
+    }
+
+    this.isUploading = true;
     const formData = new FormData();
     formData.append('file', file);
 
-    this.http.post(`${environment.apiUrl}/transactions/accounts/${this.selectedAccount!.account_id}/import-transactions`, formData).subscribe({
-      next: () => {
+    console.log(formData.get('file'));
+    
+
+    this.http.post(`${environment.apiUrl}/transactions/accounts/${this.selectedAccount.account_id}/import-transactions`, formData).subscribe({
+      next: (response) => {
         this.messageService.add({
           severity: 'success',
           summary: 'Success',
@@ -424,10 +453,23 @@ export class TransactionsComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Failed to import transactions'
+          detail: error.error?.message || 'Failed to import transactions'
         });
+      },
+      complete: () => {
+        this.isUploading = false;
       }
     });
+  }
+
+  onUploadError(event: any) {
+    console.error('Upload error:', event);
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Failed to upload file. Please try again.'
+    });
+    this.isUploading = false;
   }
 
   showNewTransactionDialog() {

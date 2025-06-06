@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 import csv
+import uuid
 
 from utils.authorization_key import EnableBankingAuth
 from celery_config import classify_transactions_task
@@ -117,6 +118,8 @@ async def synchronize_transactions(db: Session = Depends(get_db)):
 
         for received_transaction in received_transactions:
             if db.query(Transaction).filter(Transaction.reference == (received_transaction["transaction_id"] or received_transaction["entry_reference"])).first() is not None:
+                should_continue = False
+                logger.info(f"Transaction {received_transaction['transaction_id']} already exists, stopping synchronization.")
                 break
 
             transaction = Transaction()
@@ -147,7 +150,7 @@ async def synchronize_transactions(db: Session = Depends(get_db)):
 
     classify_transactions_task.delay(new_transaction_ids)
 
-    return response.success(f"Synchronized and classified {len(new_transaction_ids)} transactions.")
+    return response.success(len(new_transaction_ids), status.HTTP_200_OK)
 
 @router.post("/accounts/{account_id}/import-transactions", response_model=Response, summary="Import transactions from file")
 async def import_transactions(
@@ -182,6 +185,8 @@ async def import_transactions(
         new_transaction_ids = []
         for row in reader:
             # Check if transaction already exists
+            if row['reference'] is None:
+                row['reference'] = str(uuid.uuid4())
             if db.query(Transaction).filter(Transaction.reference == row['reference']).first() is not None:
                 continue
                 
@@ -225,7 +230,7 @@ async def insert_transaction(
         return response.with_error(f"Account {account_id} not found", status.HTTP_404_NOT_FOUND)
     
     # Validate required fields
-    required_fields = {'reference', 'remittance_information', 'amount'}
+    required_fields = {'remittance_information', 'amount'}
     if not all(field in transaction_data for field in required_fields):
         return response.with_error(
             f"Transaction must contain the following fields: {', '.join(required_fields)}",
@@ -234,6 +239,8 @@ async def insert_transaction(
     
     try:
         # Check if transaction already exists
+        if transaction_data.get('reference') is None:
+            transaction_data['reference'] = str(uuid.uuid4())
         if db.query(Transaction).filter(Transaction.reference == transaction_data['reference']).first() is not None:
             return response.with_error("Transaction with this reference already exists", status.HTTP_400_BAD_REQUEST)
         
