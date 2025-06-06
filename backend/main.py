@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import base, users, enable_banking_authorization, enable_banking_accounts, budget_routes, tasks_routes, analytics, account_routes, ml_routes
+from routers import base, users, enable_banking_authorization, enable_banking_accounts, budget_routes, tasks_routes, analytics, account_routes, ml_routes, transactions
 
 app = FastAPI(
     title="Smart Spend",
@@ -26,6 +26,7 @@ app.include_router(tasks_routes.router)
 app.include_router(analytics.router)
 app.include_router(account_routes.router)
 app.include_router(ml_routes.router)
+app.include_router(transactions.router)
 
 @app.get("/")
 async def root():
