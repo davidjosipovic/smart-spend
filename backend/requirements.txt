@@ -1,5 +1,5 @@
-fastapi
-uvicorn
+fastapi==0.109.2
+uvicorn==0.27.1
 orjson
 watchdog
 bson
@@ -7,11 +7,19 @@ httpx
 pyjwt
 pydantic_settings
 cryptography
-sqlalchemy
-psycopg2-binary
-alembic
+sqlalchemy==2.0.27
+psycopg2-binary==2.9.9
+alembic==1.13.1
 pytz
 sendgrid
-celery
-redis
+celery==5.3.6
+redis==5.0.1
 flower
+# ML dependencies
+numpy==1.26.3
+scikit-learn==1.4.0
+joblib
+# Spark dependencies
+pyspark==3.5.0
+python-dotenv==1.0.1
+pydantic

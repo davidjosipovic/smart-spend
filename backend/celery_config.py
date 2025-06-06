@@ -1,7 +1,9 @@
 import asyncio
 import os
 from datetime import datetime
+from typing import List
 
+from tasks.ml_tasks import classify_transactions
 from celery import Celery
 from celery.schedules import crontab
 
@@ -13,28 +15,53 @@ from model.enable_banking.transaction import Transaction
 from model.users.user import User
 from tasks.synchronize_transactions import synchronize_transactions
 
-BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
+# Create Celery app
+app = Celery('tasks')
 
-app = Celery(
-    'tasks',
-    broker=BROKER_URL,
-    backend=BROKER_URL,
+# Configure Celery
+app.conf.update(
+    broker_url=os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0'),
+    result_backend=os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0'),
+    task_serializer='json',
+    accept_content=['json'],
+    result_serializer='json',
+    timezone='UTC',
+    enable_utc=True,
+    task_track_started=True,  # Enable task tracking
+    task_publish_retry=True,  # Enable retry on publish
+    task_publish_retry_policy={
+        'max_retries': 3,
+        'interval_start': 0,
+        'interval_step': 0.2,
+        'interval_max': 0.2,
+    },
+    worker_prefetch_multiplier=1,  # Process one task at a time
+    worker_max_tasks_per_child=50,  # Restart worker after 50 tasks
+    worker_max_memory_per_child=200000,  # Restart worker if memory exceeds 200MB
 )
 
+# Import tasks
+app.autodiscover_tasks([
+    'tasks.ml_tasks',
+    'tasks.budget_tasks',
+    'tasks.transaction_tasks'
+])
+
+# Configure periodic tasks
 app.conf.beat_schedule = {
-    'synchronize_transactions': {
-        'task': 'synchronize_transactions',
-        'schedule': crontab(minute="0", hour="0"),
-    },
     'check-budgets': {
         'task': 'check_budgets',
-        'schedule': 20,
-    }
+        'schedule': crontab(minute='*/15'),  # Every 15 minutes
+    },
+    'synchronize-transactions': {
+        'task': 'synchronize_transactions',
+        'schedule': crontab(minute="0", hour="0"),  # Every midnight
+    },
 }
 
 @app.task(name="synchronize_transactions")
 def synchronize_transactions_task():
-    asyncio.run(synchronize_transactions())
+    asyncio.run(synchronize_transactions(None))
     return "Started transactions synchronization."
 
 
@@ -67,6 +94,10 @@ def check_budgets_task():
         db.close()
         return f"Total {total_emails_sent} emails sent."
 
+@app.task(name="classify_transactions")
+def classify_transactions_task(transaction_ids: List[str]):
+    classify_transactions(transaction_ids)
+    return "Started transaction classification."
 
 def is_datetime_in_range(valid_from: str, valid_until: str) -> bool:
     valid_from_dt = datetime.fromisoformat(valid_from)

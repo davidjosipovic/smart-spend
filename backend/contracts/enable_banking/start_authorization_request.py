@@ -1,12 +1,13 @@
 from pydantic import BaseModel
+from typing import Union
 
 class AccountIdentification(BaseModel):
     iban: str
 
 class Access(BaseModel):
-    accounts: list[AccountIdentification] | None = None
-    balances: bool | None = None
-    transactions: bool | None = None
+    accounts: Union[list[AccountIdentification], None] = None
+    balances: Union[bool, None] = None
+    transactions: Union[bool, None] = None
     valid_until: str
 
 class Aspsp(BaseModel):

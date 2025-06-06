@@ -16,28 +16,29 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0  # Set Celery broker to Redis
     volumes:
       - ./backend:/app
-    command: ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]
+      - ./backend/models:/app/models
+    networks:
+      - app-network
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: frontend
-    ports:
-      - "3000:3000" 
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true
-    command: ["ng", "serve", "--host", "0.0.0.0", "--port", "3000", "--disable-host-check", "--poll", "2000"]
-    user: "node"
+  #frontend:
+  #  build:
+  #    context: ./frontend
+  #    dockerfile: Dockerfile
+  #  container_name: frontend
+  #  ports:
+  #    - "3000:3000" 
+  #  volumes:
+  #    - ./frontend:/app
+  #    - /app/node_modules
+  #  environment:
+  #    - NODE_ENV=development
+  #    - CHOKIDAR_USEPOLLING=true
+  #  command: ["ng", "serve", "--host", "0.0.0.0", "--port", "3000", "--disable-host-check", "--poll", "2000"]
+  #  user: "node"
 
   db:
     image: postgres:17
     container_name: db
-    restart: always
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -46,13 +47,17 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
 
   redis:
     image: redis:alpine
     container_name: redis
     ports:
-      - "6379:6379"  # Redis port for Celery to connect
+      - "6379:6379"
     restart: always
+    networks:
+      - app-network
 
   celery:
     build:
@@ -64,36 +69,78 @@ services:
       - redis
       - db
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0  # Celery connects to Redis here
+      - CELERY_BROKER_URL=redis://redis:6379/0
     volumes:
       - ./backend:/app
+      - ./backend/models:/app/models
+    networks:
+      - app-network
 
   celery-beat:
-      build:
-        context: ./backend
-        dockerfile: Dockerfile
-      container_name: celery-beat
-      command: [ "celery", "-A", "celery_config.app", "beat", "--loglevel=info" ]
-      depends_on:
-        - redis
-        - celery
-      environment:
-        - CELERY_BROKER_URL=redis://redis:6379/0  # Celery Beat connects to Redis here
-      volumes:
-        - ./backend:/app
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: celery-beat
+    command: [ "celery", "-A", "celery_config.app", "beat", "--loglevel=info" ]
+    depends_on:
+      - redis
+      - celery
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    networks:
+      - app-network
 
   flower:
     image: mher/flower
     container_name: flower
     ports:
-      - "5555:5555"  # Flower web interface port
+      - "5555:5555"
     environment:
-      - FLOWER_BASIC_AUTH=username:password  # Optional: set Flower basic auth for security
+      - FLOWER_BASIC_AUTH=username:password
     depends_on:
       - redis
       - celery
     command: ["celery", "--broker=redis://redis:6379/0", "flower", "--port=5555"]
+    networks:
+      - app-network
+
+  spark-master:
+    image: bitnami/spark:3.5
+    container_name: spark-master
+    ports:
+      - "7077:7077"  # Spark master port
+      - "8080:8080"  # Spark master web UI
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_IP=spark-master
+    volumes:
+      - spark_data:/opt/bitnami/spark/data
+
+  spark-worker:
+    image: bitnami/spark:3.5
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_IP=spark-worker
+    volumes:
+      - spark_data:/opt/bitnami/spark/data
 
 volumes:
   postgres_data:
   node_modules:
+  spark_data:
+
+networks:
+  app-network:
+    driver: bridge
