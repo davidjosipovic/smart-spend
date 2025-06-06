@@ -1,8 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CardModule } from 'primeng/card';
 import { ChartModule } from 'primeng/chart';
 import { ButtonModule } from 'primeng/button';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../../environments/environment';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-overview',
@@ -18,7 +21,6 @@ import { ButtonModule } from 'primeng/button';
       <!-- Page Header -->
       <div class="flex justify-between items-center">
         <h2 class="text-2xl font-semibold text-gray-900">Overview</h2>
-        <p-button label="Add Transaction" icon="pi pi-plus"></p-button>
       </div>
 
       <!-- Stats Cards -->
@@ -30,7 +32,7 @@ import { ButtonModule } from 'primeng/button';
             </div>
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-600">Total Balance</p>
-              <p class="text-2xl font-semibold text-gray-900">$24,500</p>
+              <p class="text-2xl font-semibold text-gray-900">€{{ analytics?.total_balance || 0 }}</p>
             </div>
           </div>
         </p-card>
@@ -42,7 +44,7 @@ import { ButtonModule } from 'primeng/button';
             </div>
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-600">Income</p>
-              <p class="text-2xl font-semibold text-gray-900">$4,200</p>
+              <p class="text-2xl font-semibold text-gray-900">€{{ analytics?.total_income || 0 }}</p>
             </div>
           </div>
         </p-card>
@@ -54,7 +56,7 @@ import { ButtonModule } from 'primeng/button';
             </div>
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-600">Expenses</p>
-              <p class="text-2xl font-semibold text-gray-900">$2,800</p>
+              <p class="text-2xl font-semibold text-gray-900">€{{ analytics?.total_expenses || 0 }}</p>
             </div>
           </div>
         </p-card>
@@ -66,7 +68,7 @@ import { ButtonModule } from 'primeng/button';
             </div>
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-600">Savings</p>
-              <p class="text-2xl font-semibold text-gray-900">$1,400</p>
+              <p class="text-2xl font-semibold text-gray-900">€{{ analytics?.savings || 0 }}</p>
             </div>
           </div>
         </p-card>
@@ -74,11 +76,13 @@ import { ButtonModule } from 'primeng/button';
 
       <!-- Charts -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <p-card header="Monthly Overview" styleClass="shadow-none border">
-          <p-chart type="line" [data]="monthlyData" [options]="chartOptions"></p-chart>
+        <p-card header="Monthly Overview" styleClass="shadow-none border h-full">
+          <div class="flex items-center h-full w-full">
+            <p-chart type="line" [data]="monthlyData" [options]="chartOptions" [style]="{'display': 'block', 'width': '100%'}"></p-chart>
+          </div>
         </p-card>
 
-        <p-card header="Expense Categories" styleClass="shadow-none border">
+        <p-card header="Expense Categories" styleClass="shadow-none border h-full">
           <p-chart type="doughnut" [data]="categoryData" [options]="chartOptions"></p-chart>
         </p-card>
       </div>
@@ -86,7 +90,7 @@ import { ButtonModule } from 'primeng/button';
       <!-- Recent Transactions -->
       <p-card header="Recent Transactions" styleClass="shadow-none border">
         <div class="space-y-4">
-          <div *ngFor="let transaction of recentTransactions" 
+          <div *ngFor="let transaction of analytics?.recent_transactions" 
                class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div class="flex items-center">
               <div class="p-2 rounded-full" [ngClass]="transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'">
@@ -104,37 +108,21 @@ import { ButtonModule } from 'primeng/button';
         </div>
       </p-card>
     </div>
+
+    <style>
+      :host ::ng-deep { 
+        .p-card-body,
+        .p-card-content {
+          height: 100%;
+        }
+      }
+    </style>
   `
 })
-export class OverviewComponent {
-  monthlyData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      {
-        label: 'Income',
-        data: [4200, 3800, 4500, 4100, 4800, 4200],
-        borderColor: '#22c55e',
-        tension: 0.4
-      },
-      {
-        label: 'Expenses',
-        data: [2800, 3100, 2900, 3200, 2800, 2800],
-        borderColor: '#ef4444',
-        tension: 0.4
-      }
-    ]
-  };
-
-  categoryData = {
-    labels: ['Housing', 'Food', 'Transport', 'Entertainment', 'Utilities'],
-    datasets: [
-      {
-        data: [35, 25, 15, 15, 10],
-        backgroundColor: ['#3b82f6', '#22c55e', '#eab308', '#ef4444', '#8b5cf6']
-      }
-    ]
-  };
-
+export class OverviewComponent implements OnInit {
+  analytics: any;
+  monthlyData: any;
+  categoryData: any;
   chartOptions = {
     plugins: {
       legend: {
@@ -144,30 +132,63 @@ export class OverviewComponent {
     maintainAspectRatio: false
   };
 
-  recentTransactions = [
-    {
-      description: 'Salary Deposit',
-      date: 'Today, 10:30 AM',
-      amount: '4,200',
-      type: 'income'
-    },
-    {
-      description: 'Grocery Shopping',
-      date: 'Yesterday, 2:15 PM',
-      amount: '120',
-      type: 'expense'
-    },
-    {
-      description: 'Electric Bill',
-      date: 'Mar 15, 2024',
-      amount: '85',
-      type: 'expense'
-    },
-    {
-      description: 'Freelance Payment',
-      date: 'Mar 14, 2024',
-      amount: '750',
-      type: 'income'
-    }
-  ];
+  constructor(private http: HttpClient, private cdRef: ChangeDetectorRef) { }
+
+  ngOnInit() {
+    this.loadAnalytics();
+  }
+
+  loadAnalytics() {
+    this.http.get(`${environment.apiUrl}/transactions/analytics`).subscribe({
+      next: (response: any) => {
+        this.analytics = response.result;
+        this.updateCharts();
+        this.cdRef.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading analytics:', error);
+      }
+    });
+  }
+
+  updateCharts() {
+    // Update monthly data chart
+    this.monthlyData = {
+      labels: this.analytics.monthly_data.labels,
+      datasets: [
+        {
+          label: 'Income',
+          data: this.analytics.monthly_data.income,
+          borderColor: '#22c55e',
+          tension: 0.4
+        },
+        {
+          label: 'Expenses',
+          data: this.analytics.monthly_data.expenses,
+          borderColor: '#ef4444',
+          tension: 0.4
+        }
+      ]
+    };
+
+    // Update category data chart
+    this.categoryData = {
+      labels: this.analytics.category_data.labels,
+      datasets: [
+        {
+          data: this.analytics.category_data.data,
+          backgroundColor: [
+            '#3b82f6', // blue
+            '#22c55e', // green
+            '#eab308', // yellow
+            '#ef4444', // red
+            '#8b5cf6', // purple
+            '#f97316', // orange
+            '#06b6d4', // cyan
+            '#ec4899'  // pink
+          ]
+        }
+      ]
+    };
+  }
 } 

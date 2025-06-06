@@ -8,6 +8,8 @@ from utils.authorization_key import EnableBankingAuth
 from celery_config import classify_transactions_task
 import httpx
 from sqlalchemy.orm.session import Session
+from sqlalchemy.sql import func
+from sqlalchemy.types import DateTime
 from starlette import status
 
 from model.common.response import Response
@@ -18,6 +20,23 @@ from model.enable_banking.account import Account
 from model.enable_banking.transaction import Transaction
 from settings import settings
 from tasks.ml_tasks import classify_transactions
+from utils.jwt_generator import JwtGenerator
+
+def parse_date(date_str):
+    """Parse date string that could be in multiple formats."""
+    formats = [
+        "%Y-%m-%d %H:%M:%S.%f",  # Full timestamp with microseconds
+        "%Y-%m-%d %H:%M:%S",     # Full timestamp without microseconds
+        "%Y-%m-%d"               # Date only
+    ]
+    
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str, fmt)
+        except ValueError:
+            continue
+    
+    raise ValueError(f"Unable to parse date string: {date_str}")
 
 router = APIRouter(
     tags=["Transactions"],
@@ -267,3 +286,113 @@ async def insert_transaction(
     except Exception as e:
         logger.error(f"Error inserting transaction: {str(e)}")
         return response.with_error("Failed to insert transaction", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@router.get("/analytics", response_model=Response, summary="Get analytics for all user accounts")
+async def get_user_analytics(
+    user_id: str = Depends(JwtGenerator.get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    response = Response()
+    
+    # Get all accounts for the user
+    accounts = db.query(Account).filter(Account.user_id == user_id).all()
+    if not accounts:
+        return response.success({
+            "total_balance": 0,
+            "total_income": 0,
+            "total_expenses": 0,
+            "savings": 0,
+            "monthly_data": {
+                "labels": [],
+                "income": [],
+                "expenses": []
+            },
+            "category_data": {
+                "labels": [],
+                "data": []
+            },
+            "recent_transactions": []
+        })
+
+    # Initialize analytics data
+    total_balance = 0
+    total_income = 0
+    total_expenses = 0
+    category_totals = {}
+    monthly_data = {
+        "income": [0] * 6,  # Last 6 months
+        "expenses": [0] * 6
+    }
+    recent_transactions = []
+
+    # Get current month and previous 5 months
+    current_date = datetime.now()
+    month_labels = []
+    for i in range(5, -1, -1):
+        month = (current_date.month - i - 1) % 12 + 1
+        year = current_date.year - ((current_date.month - i - 1) // 12)
+        month_labels.append(datetime(year, month, 1).strftime("%b"))
+
+    # Calculate the start date for the last 6 months
+    start_date = datetime(current_date.year, current_date.month - 5, 1)
+
+    # Process each account
+    for account in accounts:
+        # Get all transactions for this account with proper type casting
+        transactions = db.query(Transaction).filter(
+            Transaction.account_id == account.id,
+            func.cast(Transaction.booking_date, DateTime) >= start_date
+        ).all()
+
+        for transaction in transactions:
+            amount = float(transaction.amount)
+            # Parse the booking_date string into a datetime object
+            booking_date = parse_date(transaction.booking_date)
+            month_index = (current_date.month - booking_date.month) % 12
+            if month_index < 6:  # Only consider last 6 months
+                if transaction.credit_debit_indicator == "CREDIT":
+                    total_income += amount
+                    monthly_data["income"][month_index] += amount
+                else:
+                    total_expenses += amount
+                    monthly_data["expenses"][month_index] += amount
+                    
+                    # Track category totals
+                    category = transaction.category or "Uncategorized"
+                    category_totals[category] = category_totals.get(category, 0) + amount
+
+            # Add to recent transactions if within last 4 transactions
+            if len(recent_transactions) < 4:
+                recent_transactions.append({
+                    "description": transaction.remittance_information,
+                    "date": booking_date.strftime("%b %d, %Y"),
+                    "amount": f"{amount:.2f}",
+                    "type": "income" if transaction.credit_debit_indicator == "CREDIT" else "expense"
+                })
+
+    # Calculate total balance and savings
+    total_balance = total_income - total_expenses
+    savings = total_income - total_expenses if total_income > total_expenses else 0
+
+    # Prepare category data
+    category_data = {
+        "labels": list(category_totals.keys()),
+        "data": list(category_totals.values())
+    }
+
+    # Sort recent transactions by date
+    recent_transactions.sort(key=lambda x: datetime.strptime(x["date"], "%b %d, %Y"), reverse=True)
+
+    return response.success({
+        "total_balance": round(total_balance, 2),
+        "total_income": round(total_income, 2),
+        "total_expenses": round(total_expenses, 2),
+        "savings": round(savings, 2),
+        "monthly_data": {
+            "labels": month_labels,
+            "income": [round(x, 2) for x in monthly_data["income"]],
+            "expenses": [round(x, 2) for x in monthly_data["expenses"]]
+        },
+        "category_data": category_data,
+        "recent_transactions": recent_transactions
+    })
