@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.Tokenizer","timestamp":1749303057586,"sparkVersion":"3.5.1","uid":"Tokenizer_099725e3b38b","paramMap":{"inputCol":"remittance_information","outputCol":"words"},"defaultParamMap":{"outputCol":"Tokenizer_099725e3b38b__output"}}
