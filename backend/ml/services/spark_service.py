@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, FloatType
+from pyspark.sql.types import StructType, StructField, StringType
 from pyspark.ml import PipelineModel
 from datetime import datetime, timedelta
 import logging
